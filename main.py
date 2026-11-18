@@ -18,6 +18,15 @@ from pathlib import Path
 OUTPUT_DIR = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
 SOURCE = Path(__file__).resolve().with_name("entry.png")
 
+# Guard the gate before copying: the source must be a real PNG within the
+# 1 MiB limit, so a corrupted or oversized image fails loudly, not silently.
+with open(SOURCE, "rb") as f:
+    magic = f.read(8)
+if magic != b"\x89PNG\r\n\x1a\n":
+    raise SystemExit("entry.png is not a PNG file")
+if SOURCE.stat().st_size > 1_048_576:
+    raise SystemExit("entry.png exceeds the 1 MiB limit")
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 dest = OUTPUT_DIR / "entry.png"
 shutil.copyfile(SOURCE, dest)
